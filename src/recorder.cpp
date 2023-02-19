@@ -1,4 +1,4 @@
-/* Sound recorder functions -------------------------------------*/
+/* Sound recorder functions -----------------------------------*/
 #include "recorder.h"
 
 /* Private functions prototypes -------------------------------*/
