@@ -1,67 +1,118 @@
 /* Sound recorder functions -----------------------------------*/
 #include "recorder.h"
+#include "esp_log.h"
 
 /* Private functions prototypes -------------------------------*/
 /* Global variables -------------------------------------------*/
-int16_t sBuffer[BUFF_LEN];
+static const char *TAG = "WAV";
 
 /**
   * @brief  Recorder class constructor
   * @param  None 
   * @retval None
   */
-Recorder::Recorder()
+Recorder::Recorder(bool fixSPH0645)
 {
-    i2sInstall();
-    i2sSetPin();
+  microphoneFix = fixSPH0645;
 }
 
 /**
-  * @brief  Starting up sound recorder
+  * @brief  Configures and starts I2S peripheral
   * @param  None
   * @retval None
   */
-void Recorder::begin(void)
+void Recorder::start(void)
 {
-    i2s_start(I2S_PORT);
+  i2s_driver_install(i2sPort, &i2sConfig, 0, NULL);
+  configureI2S();
 }
 
 /**
-  * @brief  Set up I2S processor configuration
-  * @param  None
-  * @retval None
+  * @brief  Reads samples from I2S peripheral
+  * @param  samples - audio samples buffer pointer
+  * @param  count - number of samples to read
+  * @retval number of read samples
   */
-void Recorder::i2sInstall(void)
+uint32_t Recorder::read(int16_t *samples, uint32_t count)
 {
-  const i2s_config_t i2s_config = {
-    .mode = i2s_mode_t(I2S_MODE_MASTER | I2S_MODE_RX),
-    .sample_rate = 44100,
-    .bits_per_sample = i2s_bits_per_sample_t(16),
-    .channel_format = I2S_CHANNEL_FMT_ONLY_LEFT,
-    .communication_format = i2s_comm_format_t(I2S_COMM_FORMAT_STAND_I2S),
-    .intr_alloc_flags = 0,
-    .dma_buf_count = 8,
-    .dma_buf_len = BUFF_LEN,
-    .use_apll = false
-  };
- 
-  i2s_driver_install(I2S_PORT, &i2s_config, 0, NULL);
+  // read from i2s
+  int32_t *rawSamples = (int32_t *)malloc(sizeof(int32_t) * count);
+  size_t bytesRead = 0;
+
+  i2s_read(i2sPort, rawSamples, sizeof(int32_t) * count, &bytesRead, portMAX_DELAY);
+  int samplesRead = bytesRead / sizeof(int32_t);
+  for (int i = 0; i < samplesRead; i++)
+  {
+    samples[i] = (rawSamples[i] & 0xFFFFFFF0) >> 11;
+  }
+  free(rawSamples);
+
+  return samplesRead;
+}
+
+uint32_t Recorder::getSampleRate(void)
+{
+  return i2sConfig.sample_rate;
 }
 
 /**
-  * @brief  Set I2S pin configuration
+  * @brief  Stops I2S peripheral
   * @param  None
   * @retval None
   */
-void Recorder::i2sSetPin(void)
+void Recorder::stop(void)
 {
-      // Set I2S pin configuration
-  const i2s_pin_config_t pin_config = {
-    .bck_io_num = I2S_SCK,
-    .ws_io_num = I2S_WS,
-    .data_out_num = -1,
-    .data_in_num = I2S_SD
-  };
- 
-  i2s_set_pin(I2S_PORT, &pin_config);
+  i2s_driver_uninstall(i2sPort);
+}
+
+/**
+  * @brief  Configures and starts I2S peripheral
+  * @param  None
+  * @retval None
+  */
+void Recorder::configureI2S(void)
+{
+  if (microphoneFix)
+  {
+    // FIXES for SPH0645
+    REG_SET_BIT(I2S_TIMING_REG(i2sPort), BIT(9));
+    REG_SET_BIT(I2S_CONF_REG(i2sPort), I2S_RX_MSB_SHIFT);
+  } 
+
+  i2s_set_pin(i2sPort, &i2sPins);
+}
+
+/**
+  * @brief  Records sound from I2S microphone
+  * @param  fs - 
+  * @param  input - 
+  * @param  filename - 
+  * @retval None
+  */
+void RecordSound(fs::FS &fs, Recorder *input, const char *fileName)
+{
+  uint8_t buffCounter = 0;
+
+  int16_t *samples = (int16_t *)malloc(sizeof(int16_t) * BUFF_LEN);
+  ESP_LOGI(TAG, "Start recording");
+  input->start();
+  // open the file on the sdcard
+  File fp = fs.open(fileName, FILE_WRITE);
+  // create a new wave file writer
+  WAVWriter *writer = new WAVWriter(&fp, input->getSampleRate());
+
+  while(buffCounter < 100)
+  {
+    int samplesRead = input->read(samples, BUFF_LEN);
+    writer->write(samples, samplesRead);
+    buffCounter++;
+  }
+  // stop the input
+  input->stop();
+  // and finish the writing
+  writer->finish();
+  fp.close();
+  delete writer;
+  free(samples);
+  ESP_LOGI(TAG, "Finished recording");
 }

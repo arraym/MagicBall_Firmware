@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 #include <WString.h>
+#include <WebServer.h>
 
 /* Public class definition --------------------------- */
 class Apserver
@@ -13,7 +14,7 @@ class Apserver
 
         void begin(void);
         void hasStorage(bool storageFlag);
-        void clientHandle(void);        
+        void clientHandle(void);
 };
 
 #endif /* ApSERVER_H */

@@ -308,10 +308,12 @@ void printDirectory(void)
   }
   dir.rewindDirectory();
   server.setContentLength(CONTENT_LENGTH_UNKNOWN);
-  server.send(200, "text/json", "");
+  // server.send(200, "text/json", "");
+  server.send(200, "text/html", "");
   WiFiClient client = server.client();
 
-  server.sendContent("[");
+  // server.sendContent("[");
+  server.sendContent("<!DOCTYPE html><html><body>");
   for(int cnt = 0; true; ++cnt)
   {
     File entry = dir.openNextFile();
@@ -323,19 +325,29 @@ void printDirectory(void)
     String output;
     if(cnt > 0)
     {
-      output = ',';
+      // output = ',';
+      output = "<br>";
     }
 
-    output += "{\"type\":\"";
-    output += (entry.isDirectory()) ? "dir" : "file";
-    output += "\",\"name\":\"";
+    output += "<a href=\"";
     output += entry.path();
-    output += "\"";
-    output += "}";
+    output += "\">";
+    output += entry.path();
+    output += "</a> - size: ";
+    output += entry.size();
+    output += " bytes";
+    
+    // output += "{\"type\":\"";
+    // output += (entry.isDirectory()) ? "dir" : "file";
+    // output += "\",\"name\":\"";
+    // output += entry.path();
+    // output += "\"";
+    // output += "}";
     server.sendContent(output);
     entry.close();
   }
-  server.sendContent("]");
+  // server.sendContent("]");
+  server.sendContent("</body></html>");
   dir.close();
 }
 
