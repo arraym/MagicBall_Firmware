@@ -43,7 +43,7 @@ uint32_t Recorder::read(int16_t *samples, uint32_t count)
   int samplesRead = bytesRead / sizeof(int32_t);
   for (int i = 0; i < samplesRead; i++)
   {
-    samples[i] = (rawSamples[i] & 0xFFFFFFF0) >> 11;
+    samples[i] = (rawSamples[i] & 0xFFFFFFF0) >> 11; // mai avem de lucru aici!!
   }
   free(rawSamples);
 
@@ -84,27 +84,33 @@ void Recorder::configureI2S(void)
 
 /**
   * @brief  Records sound from I2S microphone
-  * @param  fs - 
-  * @param  input - 
-  * @param  filename - 
+  * @param  fs - file system pointer
+  * @param  input - recorder object pointer
+  * @param  filename - output file path
   * @retval None
   */
 void RecordSound(fs::FS &fs, Recorder *input, const char *fileName)
 {
-  uint8_t buffCounter = 0;
+  uint16_t buffCounter = 0;
 
   int16_t *samples = (int16_t *)malloc(sizeof(int16_t) * BUFF_LEN);
   ESP_LOGI(TAG, "Start recording");
   input->start();
   // open the file on the sdcard
-  File fp = fs.open(fileName, FILE_WRITE);
+  if(fs.exists(fileName))
+    fs.remove(fileName);
+
+  File fp = fs.open(fileName, "wb");
   // create a new wave file writer
   WAVWriter *writer = new WAVWriter(&fp, input->getSampleRate());
 
-  while(buffCounter < 100)
+  while(buffCounter < 256)
   {
-    int samplesRead = input->read(samples, BUFF_LEN);
+    // digitalWrite(LED_PIN, LOW);
+    uint32_t samplesRead = input->read(samples, BUFF_LEN);
+    digitalWrite(LED_PIN, LOW);
     writer->write(samples, samplesRead);
+    digitalWrite(LED_PIN, HIGH);
     buffCounter++;
   }
   // stop the input

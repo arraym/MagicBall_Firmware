@@ -4,10 +4,6 @@
 #include "storage.h"
 #include "apserver.h"
 
-#include <WebServer.h>
-
-#define LED_PIN   22
-
 Recorder myRecorder;
 Storage myStorage;
 Apserver myServer;

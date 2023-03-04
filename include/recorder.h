@@ -1,9 +1,11 @@
 #ifndef RECORDER_H
 #define RECORDER_H
 
-#include <stdint.h>
+// #include <stdint.h>
 #include <driver/i2s.h>
 #include "WAVWriter.h"
+
+#define LED_PIN         22
 
 // Connections to I2S microphone
 #define I2S_WS          25
@@ -38,13 +40,15 @@ class Recorder
         const i2s_config_t i2sConfig = {
             .mode = i2s_mode_t(I2S_MODE_MASTER | I2S_MODE_RX),
             .sample_rate = SAMPLE_RATE,
-            .bits_per_sample = I2S_BITS_PER_SAMPLE_16BIT,
-            .channel_format = I2S_CHANNEL_FMT_ONLY_LEFT,
+            .bits_per_sample = I2S_BITS_PER_SAMPLE_32BIT,
+            .channel_format = I2S_CHANNEL_FMT_ONLY_RIGHT,
             .communication_format = I2S_COMM_FORMAT_STAND_I2S,
             .intr_alloc_flags = ESP_INTR_FLAG_LEVEL1,
             .dma_buf_count = BUFF_COUNT,
             .dma_buf_len = BUFF_LEN,
-            .use_apll = false
+            .use_apll = false, 
+            .tx_desc_auto_clear = false,
+            .fixed_mclk = 0
         };
         const i2s_pin_config_t i2sPins = {
             .bck_io_num = I2S_SCK,

@@ -17,10 +17,9 @@ WAVWriter::WAVWriter(File *fp, uint32_t sampleRate)
   pFile = fp;
   fileHeader.sampleRate = sampleRate;
 
-  // write out the header - we'll fill in some of the blanks later
-  pFile->print((const char*)&fileHeader);
-//   fwrite(&fileHeader, sizeof(WAV_HeaderTypeDef), 1, pFile);
   fileSize = sizeof(WAV_HeaderTypeDef);
+  // write out the header - we'll fill in some of the blanks later
+  pFile->write((const uint8_t*)&fileHeader, fileSize);
 }
 
 /**
@@ -32,7 +31,7 @@ WAVWriter::WAVWriter(File *fp, uint32_t sampleRate)
 void WAVWriter::write(int16_t *samples, uint32_t count)
 {
   // write the samples and keep track of the file size so far
-  pFile->print((const char*)&samples);
+  pFile->write((const uint8_t*)&samples[0], count * sizeof(int16_t));
   fileSize += sizeof(int16_t) * count;
 }
 
@@ -48,6 +47,6 @@ void WAVWriter::finish(void)
   // now fill in the header with the correct information and write it again
   fileHeader.dataBytes = fileSize - sizeof(WAV_HeaderTypeDef);
   fileHeader.wavSize = fileSize - 8;
-  pFile->seek(0);
-  pFile->print((const char*)&fileHeader);
+  pFile->seek(0, SeekSet);
+  pFile->write((const uint8_t*)&fileHeader, sizeof(WAV_HeaderTypeDef));
 }
