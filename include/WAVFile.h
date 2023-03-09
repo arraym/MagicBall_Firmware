@@ -13,10 +13,10 @@ typedef struct wavHeader
   char fmtHeader[4];            // Contains "fmt " (includes trailing space)
   int fmtChunkSize = 16;        // Should be 16 for PCM
   short audioFormat = 1;        // Should be 1 for PCM. 3 for IEEE Float
-  short numChannels = 1;
-  int sampleRate = 16000;
-  int byteRate = 32000;        // Number of bytes per second. sample_rate * num_channels * Bytes Per Sample
-  short sampleAlignment = 2;   // num_channels * Bytes Per Sample
+  short numChannels = 2;
+  int sampleRate = 22050;
+  int byteRate = 88200;        // Number of bytes per second. sample_rate * num_channels * Bytes Per Sample
+  short sampleAlignment = 4;   // num_channels * Bytes Per Sample
   short bitDepth = 16;         // Number of bits per sample
 
   // Data

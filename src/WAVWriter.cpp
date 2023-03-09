@@ -1,10 +1,8 @@
 /* WAVE file writer functions ---------------------------------*/
 #include "WAVWriter.h"
-#include "esp_log.h"
 
 /* Private functions prototypes -------------------------------*/
 /* Global variables -------------------------------------------*/
-static const char *TAG = "WAV";
 
 /**
   * @brief  WAVWriter class constructor
@@ -42,7 +40,8 @@ void WAVWriter::write(int16_t *samples, uint32_t count)
   */
 void WAVWriter::finish(void)
 {
-  ESP_LOGI(TAG, "Finishing wav file size: %d", fileSize);
+  Serial.print("Finishing wav file size: ");
+  Serial.println(fileSize);
 
   // now fill in the header with the correct information and write it again
   fileHeader.dataBytes = fileSize - sizeof(WAV_HeaderTypeDef);

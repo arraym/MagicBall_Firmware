@@ -8,19 +8,19 @@
 #define LED_PIN         22
 
 // Connections to I2S microphone
-#define I2S_WS          25
-#define I2S_SD          33
-#define I2S_SCK         32
+#define I2S_WS          15
+#define I2S_SD          32
+#define I2S_SCK         14
  
 // Use I2S Processor 0
 #define I2S_PORT        I2S_NUM_0
  
 // Define input buffers info
-#define BUFF_LEN        1024
+#define BUFF_LEN        512
 #define BUFF_COUNT      4
 
 // Define sampling rate
-#define SAMPLE_RATE     16000
+#define SAMPLE_RATE     22050
 
 
 /* Public class definition --------------------------- */
@@ -41,8 +41,8 @@ class Recorder
             .mode = i2s_mode_t(I2S_MODE_MASTER | I2S_MODE_RX),
             .sample_rate = SAMPLE_RATE,
             .bits_per_sample = I2S_BITS_PER_SAMPLE_32BIT,
-            .channel_format = I2S_CHANNEL_FMT_ONLY_RIGHT,
-            .communication_format = I2S_COMM_FORMAT_STAND_I2S,
+            .channel_format = I2S_CHANNEL_FMT_RIGHT_LEFT,
+            .communication_format = i2s_comm_format_t(I2S_COMM_FORMAT_STAND_I2S),
             .intr_alloc_flags = ESP_INTR_FLAG_LEVEL1,
             .dma_buf_count = BUFF_COUNT,
             .dma_buf_len = BUFF_LEN,

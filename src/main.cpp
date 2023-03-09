@@ -3,6 +3,11 @@
 #include "recorder.h"
 #include "storage.h"
 #include "apserver.h"
+#define USE_AUDIO_TOOLS
+
+#ifdef USE_AUDIO_TOOLS
+#include "AudioTools.h"
+#endif
 
 Recorder myRecorder;
 Storage myStorage;
@@ -10,81 +15,86 @@ Apserver myServer;
 
 extern WebServer server;
 
-extern int16_t sBuffer[BUFF_LEN];
+#ifdef USE_AUDIO_TOOLS
+I2SStream i2sStream;                                              // Access I2S as stream
+File audioFile;                                                   // final output stream
+EncodedAudioStream out_stream(&audioFile, new WAVEncoder());      // encode as wav file
+StreamCopy copier(out_stream, i2sStream);  
+
+uint32_t bufferCounter = 0;
+bool doneFlag = false;
+#else
+bool doneFlag = true;
+#endif
 
 void setup()
 {
-    Serial.begin(115200);
-    // while(!Serial.available());    
+  Serial.begin(115200);
+  // while(!Serial.available());    
 
-    myStorage.begin();
-
-    // myStorage.listDir(SD, "/", 0);
-    // myStorage.createDir(SD, "/mydir");
-    // myStorage.listDir(SD, "/", 0);
-    // myStorage.removeDir(SD, "/mydir");
-    // myStorage.listDir(SD, "/", 2);
-    // myStorage.writeFile(SD, "/hello.txt", "Hello ");
-    // myStorage.appendFile(SD, "/hello.txt", "World!\n");
-    // myStorage.readFile(SD, "/hello.txt");
-    // myStorage.deleteFile(SD, "/foo.txt");
-    // myStorage.renameFile(SD, "/hello.txt", "/foo.txt");
-    // myStorage.readFile(SD, "/foo.txt");
-    // myStorage.testFileIO(SD, "/test.txt");
-    Serial.printf("Total space: %lluMB\n", SD.totalBytes() / (1024 * 1024));
-    Serial.printf("Used space: %lluMB\n", SD.usedBytes() / (1024 * 1024));
+  myStorage.begin();
 
   pinMode(LED_PIN, OUTPUT);
-  digitalWrite(LED_PIN, HIGH);
+  digitalWrite(LED_PIN, HIGH); 
 
+#ifdef USE_AUDIO_TOOLS
+  auto cfg = i2sStream.defaultConfig(RX_MODE);
+  cfg.i2s_format = I2S_STD_FORMAT;
+  cfg.sample_rate = SAMPLE_RATE;
+  cfg.channels = 2;
+  cfg.bits_per_sample = 16;
+  i2sStream.begin(cfg);
+  Serial.println("I2S started!");
+
+  // we need to provide the audio information to the encoder
+  out_stream.begin(cfg);
+  // open the output file
+  if(SD.exists("/Audio/test.wav"))
+    SD.remove("/Audio/test.wav");
+  audioFile = SD.open("/Audio/test.wav", "wb");
+  if(!audioFile)
+  {
+    Serial.println("Failed to open file for writing");
+    return;
+  }
+
+  delay(2000);
+  digitalWrite(LED_PIN, LOW);
+#else
   Serial.println(" ");
  
   // Start I2S recording
   Recorder *input = new Recorder();
   
   delay(500);
-  RecordSound(SD, input, "/Audio/test.wav");  
-
+  digitalWrite(LED_PIN, LOW);
+  RecordSound(SD, input, "/Audio/test.wav"); 
+  digitalWrite(LED_PIN, HIGH);
   myServer.begin();
   myServer.hasStorage(myStorage.isMounted());
-
-  delay(1000);
+#endif
 }
 
 void loop()
 {
-  myServer.clientHandle();
-  
-  // delay(100);
-
-  // digitalWrite(LED_PIN, !digitalRead(LED_PIN));
-  // // False print statements to "lock range" on serial plotter display
-  // // Change rangelimit value to adjust "sensitivity"
-  // int rangelimit = 3000;
-  // Serial.print(rangelimit * -1);
-  // Serial.print(" ");
-  // Serial.print(rangelimit);
-  // Serial.print(" ");
- 
-  // // Get I2S data and place in data buffer
-  // size_t bytesIn = 0;
-  // esp_err_t result = i2s_read(I2S_PORT, &sBuffer, BUFF_LEN, &bytesIn, portMAX_DELAY);
- 
-  // if (result == ESP_OK)
-  // {
-  //   // Read I2S data buffer
-  //   int16_t samples_read = bytesIn / 8;
-  //   if (samples_read > 0) {
-  //     float mean = 0;
-  //     for (int16_t i = 0; i < samples_read; ++i) {
-  //       mean += (sBuffer[i]);
-  //     }
- 
-  //     // Average the data reading
-  //     mean /= samples_read;
- 
-  //     // Print to serial plotter
-  //     Serial.println(mean);
-  //   }
-  // }
+  if(!doneFlag)
+  {
+#ifdef USE_AUDIO_TOOLS
+    copier.copy();  
+    if(bufferCounter > 2048)
+    {
+      doneFlag = true;
+      audioFile.close();
+      Serial.println("File writed successfuly!");
+      digitalWrite(LED_PIN, HIGH);
+      myServer.begin();
+      myServer.hasStorage(myStorage.isMounted());
+    }
+    bufferCounter++;
+#endif
+  }
+  else
+  {
+    myServer.clientHandle();
+  }
 }

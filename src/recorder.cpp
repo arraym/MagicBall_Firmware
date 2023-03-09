@@ -1,10 +1,8 @@
 /* Sound recorder functions -----------------------------------*/
 #include "recorder.h"
-#include "esp_log.h"
 
 /* Private functions prototypes -------------------------------*/
 /* Global variables -------------------------------------------*/
-static const char *TAG = "WAV";
 
 /**
   * @brief  Recorder class constructor
@@ -43,7 +41,11 @@ uint32_t Recorder::read(int16_t *samples, uint32_t count)
   int samplesRead = bytesRead / sizeof(int32_t);
   for (int i = 0; i < samplesRead; i++)
   {
-    samples[i] = (rawSamples[i] & 0xFFFFFFF0) >> 11; // mai avem de lucru aici!!
+    // Serial.print(rawSamples[i] & 0x7FFFFFFF, HEX);
+    // Serial.print(" - ");
+    // samples[i] = (rawSamples[i] & 0xFFFFFFF0) >> 11; // mai avem de lucru aici!!
+    samples[i] = rawSamples[i] >> 10;
+    // Serial.println(samples[i], HEX);
   }
   free(rawSamples);
 
@@ -94,7 +96,7 @@ void RecordSound(fs::FS &fs, Recorder *input, const char *fileName)
   uint16_t buffCounter = 0;
 
   int16_t *samples = (int16_t *)malloc(sizeof(int16_t) * BUFF_LEN);
-  ESP_LOGI(TAG, "Start recording");
+  Serial.println("Start recording");
   input->start();
   // open the file on the sdcard
   if(fs.exists(fileName))
@@ -104,13 +106,10 @@ void RecordSound(fs::FS &fs, Recorder *input, const char *fileName)
   // create a new wave file writer
   WAVWriter *writer = new WAVWriter(&fp, input->getSampleRate());
 
-  while(buffCounter < 256)
+  while(buffCounter < 2048)
   {
-    // digitalWrite(LED_PIN, LOW);
     uint32_t samplesRead = input->read(samples, BUFF_LEN);
-    digitalWrite(LED_PIN, LOW);
     writer->write(samples, samplesRead);
-    digitalWrite(LED_PIN, HIGH);
     buffCounter++;
   }
   // stop the input
@@ -120,5 +119,5 @@ void RecordSound(fs::FS &fs, Recorder *input, const char *fileName)
   fp.close();
   delete writer;
   free(samples);
-  ESP_LOGI(TAG, "Finished recording");
+  Serial.println("Finished recording");
 }
