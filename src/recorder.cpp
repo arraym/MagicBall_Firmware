@@ -43,7 +43,7 @@ uint32_t Recorder::read(int16_t *samples, uint32_t count)
   {
     // Serial.print(rawSamples[i] & 0x7FFFFFFF, HEX);
     // Serial.print(" - ");
-    // samples[i] = (rawSamples[i] & 0xFFFFFFF0) >> 11; // mai avem de lucru aici!!
+    // samples[i] = (rawSamples[i] & 0xFFFFFFF0) >> 11; 
     samples[i] = rawSamples[i] >> 10;
     // Serial.println(samples[i], HEX);
   }

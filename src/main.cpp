@@ -7,6 +7,7 @@
 
 #ifdef USE_AUDIO_TOOLS
 #include "AudioTools.h"
+#include "AudioCodecs/CodecOpusOgg.h"
 #endif
 
 Recorder myRecorder;
@@ -18,8 +19,11 @@ extern WebServer server;
 #ifdef USE_AUDIO_TOOLS
 I2SStream i2sStream;                                              // Access I2S as stream
 File audioFile;                                                   // final output stream
-EncodedAudioStream out_stream(&audioFile, new WAVEncoder());      // encode as wav file
+// EncodedAudioStream out_stream(&audioFile, new WAVEncoder());      // encode as wav file -> this works
+EncodedAudioStream out_stream(&audioFile, new OpusOggEncoder());  // encode as ogg file -> this doesn't :/
 StreamCopy copier(out_stream, i2sStream);  
+
+// wrong initialization for encoder: it has no out pointer (null pointer)
 
 uint32_t bufferCounter = 0;
 bool doneFlag = false;
@@ -49,9 +53,9 @@ void setup()
   // we need to provide the audio information to the encoder
   out_stream.begin(cfg);
   // open the output file
-  if(SD.exists("/Audio/test.wav"))
-    SD.remove("/Audio/test.wav");
-  audioFile = SD.open("/Audio/test.wav", "wb");
+  if(SD.exists("/Audio/test.ogg"))
+    SD.remove("/Audio/test.ogg");
+  audioFile = SD.open("/Audio/test.ogg", "wb");
   if(!audioFile)
   {
     Serial.println("Failed to open file for writing");
@@ -81,11 +85,11 @@ void loop()
   {
 #ifdef USE_AUDIO_TOOLS
     copier.copy();  
-    if(bufferCounter > 2048)
+    if(bufferCounter > 1024)
     {
       doneFlag = true;
       audioFile.close();
-      Serial.println("File writed successfuly!");
+      Serial.println("File written successfuly!");
       digitalWrite(LED_PIN, HIGH);
       myServer.begin();
       myServer.hasStorage(myStorage.isMounted());

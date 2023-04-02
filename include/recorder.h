@@ -20,7 +20,7 @@
 #define BUFF_COUNT      4
 
 // Define sampling rate
-#define SAMPLE_RATE     22050
+#define SAMPLE_RATE     16000
 
 
 /* Public class definition --------------------------- */
